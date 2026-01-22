@@ -1,154 +1,196 @@
+# Frontend – Artifact Case (React + Vite)
+
 ## 1. Papel do Frontend no Projeto
 
 O frontend existe para:
 
-- Permitir que um usuário faça perguntas de forma visual
+- Permitir que o usuário faça perguntas por meio de uma interface web
 - Enviar essas perguntas para a API principal (`agent`)
-- Exibir a resposta retornada, seja ela do LLM ou de uma tool
+- Exibir a resposta retornada, seja ela gerada pelo LLM ou por uma tool
 
-Toda a inteligência está na API. O frontend apenas consome.
+Toda a inteligência do sistema está concentrada na API.  
+O frontend atua apenas como **camada de apresentação e consumo**, sem regras de negócio.
 
 ---
 
 ## 2. Conexão com a API
 
-```python
-API_URL = "http://agent-api:8080/ask"
+```ts
+const API_URL = "http://agent-api:8080/ask";
 ```
 
 - Define o endereço da API principal
-- O nome `agent-api` é resolvido via Docker Compose
+- O nome `agent-api` é resolvido automaticamente via Docker Compose
 - Toda pergunta do usuário é enviada para essa rota
-
-O frontend não conhece agentes, grafo ou ferramentas — apenas essa URL.
+- O frontend não conhece agentes, grafos ou ferramentas internas — apenas consome essa URL.
 
 ---
 
-## 3. Configuração da Página
+## 3. Stack do Frontend
 
-```python
-st.set_page_config(
-    page_title="Artifact Case Chat",
-    page_icon="🤖",
-    layout="centered",
-)
+O frontend foi desenvolvido utilizando:
+
+- React
+- Vite
+- JavaScript
+- Fetch API
+- Docker
+
+A aplicação roda localmente em:
+
+```
+http://localhost:5173
 ```
 
-- Define título, ícone e layout da aplicação
-- Essa configuração roda uma única vez no carregamento
-
-Em seguida, o título principal da interface é exibido.
+Quando executada via Docker, essa porta é exposta pelo container.
 
 ---
 
-## 4. Controle de Estado da Conversa
+## 4. Estrutura Geral da Aplicação
 
-```python
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+A aplicação segue um fluxo simples:
+
+1. O usuário digita uma pergunta
+2. A pergunta é enviada para a API
+3. A resposta é recebida
+4. O histórico da conversa é atualizado
+5. A interface é re-renderizada
+
+Tudo acontece sem recarregar a página.
+
+---
+
+## 5. Controle de Estado da Conversa
+
+O histórico da conversa é mantido no estado do React:
+
+```js
+const [messages, setMessages] = useState([]);
 ```
 
-- Usa o `session_state` do Streamlit para manter o histórico
-- Sem isso, a conversa seria perdida a cada interação
+Cada mensagem segue o formato:
 
-Cada mensagem é armazenada com:
-
-- `role`: user ou assistant
-- `content`: texto exibido no chat
-
----
-
-## 5. Renderização do Histórico
-
-```python
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+```js
+{
+  role: "user" | "assistant",
+  content: string
+}
 ```
 
-- Reexibe todo o histórico da conversa
-- Garante que o chat pareça contínuo para o usuário
+Isso garante que:
+
+- O histórico não seja perdido durante a sessão
+- O chat seja renderizado de forma contínua
+- O estado fique previsível e fácil de depurar
 
 ---
 
-## 6. Entrada do Usuário
+## 6. Renderização do Histórico
 
-```python
-user_input = st.chat_input("Digite sua pergunta...")
+O histórico é percorrido e renderizado dinamicamente:
+
+```jsx
+messages.map((msg, index) => (
+  <ChatMessage key={index} role={msg.role} content={msg.content} />
+));
 ```
 
-- Campo de input no formato de chat
-- Retorna valor apenas quando o usuário envia a mensagem
+Cada mensagem é exibida de acordo com seu papel:
 
-Quando há entrada, o fluxo da conversa começa.
+- `user` → mensagem do usuário
+- `assistant` → resposta da API
 
 ---
 
-## 7. Envio da Pergunta para a API
+## 7. Entrada do Usuário
 
-Após o usuário enviar a pergunta:
+O input principal permite que o usuário envie perguntas:
 
-- A mensagem é adicionada ao histórico
-- A pergunta é exibida imediatamente no chat
-- A API é chamada via `requests.post`
-
-```python
-response = requests.post(
-    API_URL,
-    json={"question": user_input},
-    timeout=60,
-)
+```jsx
+<input
+  value={input}
+  onChange={(e) => setInput(e.target.value)}
+  placeholder="Digite sua pergunta..."
+/>
 ```
 
-O frontend apenas envia o texto — nenhuma interpretação acontece aqui.
+Ao enviar a mensagem:
+
+- O texto é adicionado imediatamente ao histórico
+- A chamada para a API é iniciada
 
 ---
 
-## 8. Tratamento da Resposta
+## 8. Envio da Pergunta para a API
 
-O frontend interpreta a resposta apenas pelo campo `type`:
+A comunicação com o backend ocorre via fetch:
 
-- **`llm_answer`** → resposta direta do modelo
-- **`calculation`** → resultado retornado por uma tool
-
-Com base nisso, o texto final exibido é escolhido.
-
-Caso a API retorne algo inesperado ou vazio, mensagens de fallback são usadas para evitar respostas quebradas na UI.
-
----
-
-## 9. Tratamento de Erros
-
-```python
-except Exception as e:
-    answer = f"Erro ao chamar a API: {e}"
+```js
+const response = await fetch(API_URL, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    question: userInput,
+  }),
+});
 ```
 
-- Qualquer erro de rede ou timeout é capturado
-- O erro é exibido de forma clara para o usuário
-
-Isso evita que a interface quebre silenciosamente.
+O frontend envia apenas o texto da pergunta, sem qualquer interpretação.
 
 ---
 
-## 10. Exibição da Resposta
+## 9. Tratamento da Resposta
 
-Por fim:
+A resposta da API é interpretada pelo campo `type`:
 
-- A resposta é adicionada ao histórico
-- O texto é renderizado como mensagem do assistente
+- `llm_answer` → resposta direta do modelo
+- `calculation` → resultado retornado por uma tool
 
-Isso fecha o ciclo da interação.
+Com base nisso, o texto exibido ao usuário é definido.
+
+Caso a resposta seja inválida ou inesperada, mensagens de fallback são utilizadas para evitar falhas na interface.
 
 ---
 
-## 11. Resumo da Lógica
+## 10. Tratamento de Erros
+
+Erros de rede, timeout ou falha da API são tratados com try/catch:
+
+```js
+catch (error) {
+  setMessages((prev) => [
+    ...prev,
+    { role: "assistant", content: "Erro ao chamar a API." },
+  ]);
+}
+```
+
+Isso garante que:
+
+- A interface não quebre
+- O usuário receba feedback claro
+- O estado do chat permaneça consistente
+
+---
+
+## 11. Resumo da Lógica do Frontend
 
 O frontend:
 
 - Mantém o estado da conversa
 - Envia perguntas para a API
 - Interpreta apenas o tipo da resposta
-- Exibe o resultado para o usuário
+- Renderiza o histórico de mensagens
+- Trata erros de forma controlada
 
-Nada mais que isso — simples, previsível e fáci
+Nada mais que isso — simples, previsível e desacoplado.
+
+---
+
+## 12. Observação Importante
+
+Toda a lógica de decisão, agentes, ferramentas e orquestração está localizada na API (`agent`).
+
+O frontend não possui regras de negócio e pode ser facilmente substituído por outra interface (CLI, mobile, etc.).
