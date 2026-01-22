@@ -1,5 +1,3 @@
-# Frontend – Artifact Case (React + Vite)
-
 ## 1. Papel do Frontend no Projeto
 
 O frontend existe para:
