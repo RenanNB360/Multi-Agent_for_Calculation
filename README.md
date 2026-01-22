@@ -55,11 +55,11 @@ Isso irá subir automaticamente:
 
 - API principal com FastAPI e LangGraph (agents)
 - Microserviço de cálculo matemático
-- Frontend em Streamlit
+- Frontend em React
 
 ### Portas utilizadas
 
-- **Frontend (Streamlit):** `http://localhost:8501`
+- **Frontend (React):** `http://localhost:5173/`
 - **API principal (Agents):** `http://localhost:8080`
 - **API Calculadora:** `http://localhost:8500`
 
@@ -69,7 +69,7 @@ Isso irá subir automaticamente:
 
 ## Arquitetura resumida
 
-- **Frontend:** Interface simples de chat (Streamlit)
+- **Frontend:** Interface simples de chat (React)
 - **API:** Orquestra agentes, LLM e ferramentas
 - **Planner Agent:** Decide se a pergunta é cálculo ou resposta direta
 - **Executor Agent:** Executa ferramentas externas e formata respostas

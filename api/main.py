@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from api.schems.schemas import AskRequest, AskResponse
 
 from service.infra.logger import logging
@@ -17,6 +18,14 @@ logger.info("Inicializando dependências da aplicação")
 
 
 logger.info("Graph LangGraph compilado com sucesso")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # em produção, restringir
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():
