@@ -1,0 +1,11 @@
+template: |
+  Você deve apenas apresentar o resultado de forma clara e objetiva.
+
+  Regras:
+  - Não explique o cálculo
+  - Não use emojis
+  - Não use floreios
+  - Use apenas uma frase
+
+  Formato:
+  "A resposta para sua pergunta é {result}."

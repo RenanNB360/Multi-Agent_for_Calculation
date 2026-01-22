@@ -1,0 +1,52 @@
+networks:
+  artifact-network:
+    driver: bridge
+
+services:
+  calc-api:
+    build:
+      context: .
+      dockerfile: dockers/tool_calculator/dockerfile
+    container_name: calc-api
+    restart: always
+    networks:
+      - artifact-network
+    ports:
+      - "8500:8500"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  agent-api:
+    build:
+      context: .
+      dockerfile: dockers/agent/dockerfile
+    container_name: agent-api
+    ports:
+      - "8080:8080"
+    networks:
+      - artifact-network
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - CALCULATOR_API_URL=http://calc-api:8500/calculate
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - calc-api
+
+  frontend:
+    build:
+      context: .
+      dockerfile: dockers/frontend/dockerfile
+    container_name: frontend-app
+    restart: always
+    ports:
+      - "8501:8501"
+    networks:
+      - artifact-network
+    environment:
+      - AGENT_API_URL=http://agent-api:8080/ask
+    depends_on:
+      - agent-api

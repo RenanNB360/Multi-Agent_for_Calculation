@@ -1,0 +1,6 @@
+
+dockers/
+.venv/
+__pycache__/
+.git/
+*.log
